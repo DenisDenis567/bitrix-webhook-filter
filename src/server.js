@@ -54,14 +54,18 @@ app.post('/webhook', async (req, res) => {
 
   console.log(`ID подходит (${entityTypeId}), получаем данные элемента с ID ${itemId}...`);
 
+  // Динамически получаем переменные в момент запроса
+  const currentBitrixUrl = process.env.BITRIX_WEBHOOK_URL;
+  const currentMakeUrl = process.env.MAKE_WEBHOOK_URL;
+
   try {
-    if (!BITRIX_WEBHOOK) {
+    if (!currentBitrixUrl) {
       console.error('КРИТИЧЕСКАЯ ОШИБКА: Переменная окружения BITRIX_WEBHOOK_URL не задана! Добавьте её в Railway.');
       return;
     }
 
     // Шаг 2: получаем полные данные элемента из Битрикс
-    const bitrixUrl = BITRIX_WEBHOOK.replace(/\/?$/, '/');
+    const bitrixUrl = currentBitrixUrl.replace(/\/?$/, '/');
     const itemRes = await axios.get(`${bitrixUrl}crm.item.get`, {
       params: { entityTypeId: ALLOWED_ENTITY_TYPE_ID, id: itemId }
     });
@@ -83,13 +87,13 @@ app.post('/webhook', async (req, res) => {
 
     console.log('Все условия выполнены — отправляем в Make');
 
-    if (!MAKE_WEBHOOK_URL) {
+    if (!currentMakeUrl) {
       console.error('КРИТИЧЕСКАЯ ОШИБКА: Переменная окружения MAKE_WEBHOOK_URL не задана! Добавьте её в Railway.');
       return;
     }
 
     // Шаг 4: отправляем в Make полные данные
-    await axios.post(MAKE_WEBHOOK_URL, {
+    await axios.post(currentMakeUrl, {
       event: body,
       item: item
     });
@@ -100,6 +104,14 @@ app.post('/webhook', async (req, res) => {
     // Если ошибка от axios (например, неверный URL Битрикса или Make)
     console.error('Ошибка при обращении к внешнему API:', err.response?.data || err.message);
   }
+});
+
+app.get('/debug', (req, res) => {
+  res.json({
+    bitrix_configured: !!process.env.BITRIX_WEBHOOK_URL,
+    make_configured: !!process.env.MAKE_WEBHOOK_URL,
+    bitrix_url_length: process.env.BITRIX_WEBHOOK_URL ? process.env.BITRIX_WEBHOOK_URL.length : 0
+  });
 });
 
 app.listen(PORT, () => {
