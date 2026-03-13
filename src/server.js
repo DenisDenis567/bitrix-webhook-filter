@@ -20,21 +20,46 @@ app.post('/webhook', async (req, res) => {
   const body = req.body;
   console.log('Входящий вебхук:', JSON.stringify(body, null, 2));
 
-  // Битрикс ждёт 200 — отвечаем сразу
+  // Битрикс ждёт 200 — отвечаем сразу, чтобы не заставлять его ждать
   res.sendStatus(200);
 
-  const entityTypeId = String(body?.data?.FIELDS?.ENTITY_TYPE_ID || '');
-  const itemId = body?.data?.FIELDS?.ID;
+  // Универсальное получение ID и ENTITY_TYPE_ID:
+  // 1. Пытаемся взять напрямую из тела (если вебхук из Робота/Бизнес-процесса)
+  // 2. Иначе берем из data.FIELDS.ID (если стандартный вебхук)
+  const itemId = body?.ID || body?.data?.FIELDS?.ID;
+  
+  // Пытаемся получить ENTITY_TYPE_ID:
+  // 1. Из прямого параметра (из Робота)
+  // 2. Из структуры data.FIELDS
+  // 3. Вытягиваем из имени события, например ONCRMDYNAMICITEMADD_1064 -> 1064
+  let entityTypeId = String(body?.ENTITY_TYPE_ID || body?.data?.FIELDS?.ENTITY_TYPE_ID || '');
+  
+  if (!entityTypeId && body?.event) {
+    const match = body.event.match(/_(\d+)$/);
+    if (match) {
+      entityTypeId = match[1];
+    }
+  }
 
-  // Шаг 1: фильтр по ENTITY_TYPE_ID
-  if (entityTypeId !== ALLOWED_ENTITY_TYPE_ID) {
-    console.log(`Пропускаем: ENTITY_TYPE_ID=${entityTypeId}`);
+  if (!itemId) {
+    console.log('Пропускаем: ID не найден во входящем вебхуке');
     return;
   }
 
-  console.log(`ID подходит (${entityTypeId}), получаем данные элемента...`);
+  // Шаг 1: фильтр по ENTITY_TYPE_ID
+  if (entityTypeId !== ALLOWED_ENTITY_TYPE_ID) {
+    console.log(`Пропускаем: ENTITY_TYPE_ID=${entityTypeId}, а нужен ${ALLOWED_ENTITY_TYPE_ID}`);
+    return;
+  }
+
+  console.log(`ID подходит (${entityTypeId}), получаем данные элемента с ID ${itemId}...`);
 
   try {
+    if (!BITRIX_WEBHOOK) {
+      console.error('КРИТИЧЕСКАЯ ОШИБКА: Переменная окружения BITRIX_WEBHOOK_URL не задана! Добавьте её в Railway.');
+      return;
+    }
+
     // Шаг 2: получаем полные данные элемента из Битрикс
     const bitrixUrl = BITRIX_WEBHOOK.replace(/\/?$/, '/');
     const itemRes = await axios.get(`${bitrixUrl}crm.item.get`, {
@@ -58,6 +83,11 @@ app.post('/webhook', async (req, res) => {
 
     console.log('Все условия выполнены — отправляем в Make');
 
+    if (!MAKE_WEBHOOK_URL) {
+      console.error('КРИТИЧЕСКАЯ ОШИБКА: Переменная окружения MAKE_WEBHOOK_URL не задана! Добавьте её в Railway.');
+      return;
+    }
+
     // Шаг 4: отправляем в Make полные данные
     await axios.post(MAKE_WEBHOOK_URL, {
       event: body,
@@ -67,7 +97,8 @@ app.post('/webhook', async (req, res) => {
     console.log('Успешно отправлено в Make');
 
   } catch (err) {
-    console.error('Ошибка:', err.message);
+    // Если ошибка от axios (например, неверный URL Битрикса или Make)
+    console.error('Ошибка при обращении к внешнему API:', err.response?.data || err.message);
   }
 });
 
