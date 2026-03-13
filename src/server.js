@@ -56,10 +56,13 @@ app.post('/webhook', async (req, res) => {
 });
 
 app.get('/debug', (req, res) => {
+  // Показываем все ключи переменных окружения (без значений — они секретные)
+  const envKeys = Object.keys(process.env).sort();
   res.json({
     make_configured: !!process.env.MAKE_WEBHOOK_URL,
     make_url_length: process.env.MAKE_WEBHOOK_URL ? process.env.MAKE_WEBHOOK_URL.length : 0,
-    allowed_entity_type_id: ALLOWED_ENTITY_TYPE_ID
+    allowed_entity_type_id: ALLOWED_ENTITY_TYPE_ID,
+    all_env_keys: envKeys
   });
 });
 
