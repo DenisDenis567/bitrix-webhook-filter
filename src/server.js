@@ -36,7 +36,7 @@ app.post('/webhook', async (req, res) => {
 
   try {
     // Шаг 2: получаем полные данные элемента из Битрикс
-    const bitrixUrl = body?.auth?.client_endpoint || BITRIX_WEBHOOK;
+    const bitrixUrl = BITRIX_WEBHOOK;
     const itemRes = await axios.get(`${bitrixUrl}crm.item.get`, {
       params: { entityTypeId: ALLOWED_ENTITY_TYPE_ID, id: itemId }
     });
