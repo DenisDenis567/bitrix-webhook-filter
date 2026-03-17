@@ -7,6 +7,7 @@ module.exports = {
   // Битрикс24 REST API
   bitrix: {
     webhookUrl: process.env.BITRIX_WEBHOOK_URL, // https://your-domain.bitrix24.ru/rest/USER_ID/SECRET/
+    outgoingToken: process.env.BITRIX_OUTGOING_TOKEN, // Токен исходящего вебхука для проверки подлинности
   },
 
   // Telegram

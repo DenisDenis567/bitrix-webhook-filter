@@ -25,6 +25,12 @@ app.post('/webhook/bitrix', async (req, res) => {
     const body = req.body;
     console.log('[webhook] Получен вебхук:', JSON.stringify(body).slice(0, 500));
 
+    // Проверка токена исходящего вебхука
+    if (config.bitrix.outgoingToken && body.auth?.application_token !== config.bitrix.outgoingToken) {
+      console.log('[webhook] Неверный токен, отклоняем');
+      return res.status(200).send('OK');
+    }
+
     // Битрикс24 отправляет event и data
     const event = body.event;
     const taskId = body.data?.FIELDS_AFTER?.ID || body.data?.ID;
