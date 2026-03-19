@@ -279,12 +279,13 @@ async function processPaidItemsQueue() {
   console.log('═'.repeat(80) + '\n');
 }
 
-// Cron job: запускается каждый час в :00 минут
-cron.schedule('0 * * * *', async () => {
+// Cron job: запускается каждые 5 минут (для тестирования)
+// Продакшн: '0 * * * *' (каждый час в :00)
+cron.schedule('*/5 * * * *', async () => {
   await processPaidItemsQueue();
 });
 
-console.log('⏰ Cron job настроен: каждый час в :00 минут');
+console.log('⏰ Cron job настроен: каждые 5 минут (тестовый режим)');
 
 // ==================== КОНЕЦ НОВОГО ФУНКЦИОНАЛА ====================
 
