@@ -168,7 +168,7 @@ app.get('/queue-status', (_req, res) => {
   res.json({
     queueSize: paidItemsQueue.length,
     items: paidItemsQueue,
-    cronSchedule: 'Every hour at :00',
+    cronSchedule: 'Every 5 minutes (test mode)', // Продакшн: 'Every hour at :00'
     bitrixConfigured: !!process.env.BITRIX_WEBHOOK_URL
   });
 });
